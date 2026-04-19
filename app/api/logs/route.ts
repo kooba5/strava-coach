@@ -9,6 +9,9 @@ export interface WorkoutLog {
   done: boolean
   note: string
   completedAt?: string
+  actualKm?: number
+  stravaActivityId?: number
+  autoMatched?: boolean
 }
 
 export type WorkoutLogs = Record<string, WorkoutLog>
@@ -26,7 +29,7 @@ export async function POST(req: NextRequest) {
   const auth = await getAuthData()
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { workoutId, done, note } = await req.json()
+  const { workoutId, done, note, actualKm, stravaActivityId, autoMatched } = await req.json()
 
   const cookie = cookies().get('workout_logs')
   const logs: WorkoutLogs = cookie ? JSON.parse(cookie.value) : {}
@@ -34,7 +37,10 @@ export async function POST(req: NextRequest) {
   logs[workoutId] = {
     done: done ?? logs[workoutId]?.done ?? false,
     note: note ?? logs[workoutId]?.note ?? '',
-    completedAt: done ? new Date().toISOString() : logs[workoutId]?.completedAt,
+    completedAt: done ? (logs[workoutId]?.completedAt || new Date().toISOString()) : logs[workoutId]?.completedAt,
+    actualKm: actualKm ?? logs[workoutId]?.actualKm,
+    stravaActivityId: stravaActivityId ?? logs[workoutId]?.stravaActivityId,
+    autoMatched: autoMatched ?? logs[workoutId]?.autoMatched ?? false,
   }
 
   const res = NextResponse.json({ success: true, logs })

@@ -7,6 +7,9 @@ interface WorkoutLog {
   done: boolean
   note: string
   completedAt?: string
+  actualKm?: number
+  stravaActivityId?: number
+  autoMatched?: boolean
 }
 type WorkoutLogs = Record<string, WorkoutLog>
 
@@ -84,10 +87,14 @@ function WorkoutCard({
   const past = isPast(workout.date)
   const today = isToday(workout.date)
 
+  const actualKm = log?.actualKm
+  const plannedKm = workout.targetKm
+  const kmPct = actualKm && plannedKm ? Math.round((actualKm / plannedKm) * 100) : null
+
   return (
     <div style={{
       background: 'var(--surface)',
-      border: `0.5px solid ${today ? color : 'var(--border)'}`,
+      border: `0.5px solid ${today ? color : log?.done ? `${color}66` : 'var(--border)'}`,
       borderLeft: `3px solid ${color}`,
       borderRadius: 10,
       marginBottom: 8,
@@ -122,7 +129,7 @@ function WorkoutCard({
         )}
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
             <span style={{
               fontSize: 11, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase',
               color, padding: '1px 6px', borderRadius: 4, background: `${color}18`,
@@ -134,15 +141,36 @@ function WorkoutCard({
                 TODAY
               </span>
             )}
+            {log?.autoMatched && log?.done && (
+              <span style={{ fontSize: 10, color: '#22c55e', background: 'rgba(34,197,94,0.12)', borderRadius: 4, padding: '1px 6px' }}>
+                ⚡ auto
+              </span>
+            )}
           </div>
           <div style={{ fontSize: 14, fontWeight: 500, color: log?.done ? 'var(--muted)' : 'var(--text)', textDecoration: log?.done ? 'line-through' : 'none' }}>
             {workout.title}
           </div>
-          {workout.targetKm && (
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-              {workout.targetKm}km {workout.targetPace ? `· ${workout.targetPace}` : ''} {workout.targetHR ? `· ${workout.targetHR}` : ''}
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
+            {/* Actual km vs planned */}
+            {actualKm && plannedKm ? (
+              <span style={{
+                fontSize: 12, fontWeight: 500,
+                color: kmPct! >= 90 ? '#22c55e' : kmPct! >= 70 ? '#f59e0b' : 'var(--orange)',
+              }}>
+                {actualKm}km / {plannedKm}km ({kmPct}%)
+              </span>
+            ) : actualKm ? (
+              <span style={{ fontSize: 12, color: '#22c55e' }}>{actualKm}km done</span>
+            ) : workout.targetKm ? (
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{workout.targetKm}km planned</span>
+            ) : null}
+            {workout.targetPace && !actualKm && (
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>· {workout.targetPace}</span>
+            )}
+            {workout.targetHR && !actualKm && (
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>· {workout.targetHR}</span>
+            )}
+          </div>
         </div>
 
         {!workout.isTravel && workout.type !== 'rest' && (
@@ -198,14 +226,16 @@ function WeekSummary({ week, logs, workouts }: { week: Week; logs: WorkoutLogs; 
   const done = completable.filter((w) => logs[w.id]?.done)
   const pct = completable.length ? Math.round((done.length / completable.length) * 100) : 0
 
-  const plannedKm = workouts.reduce((s, w) => s + (w.targetKm || 0), 0)
+  const plannedKm = workouts.filter((w) => w.type !== 'gym').reduce((s, w) => s + (w.targetKm || 0), 0)
+  const actualKm = workouts.reduce((s, w) => s + (logs[w.id]?.actualKm || 0), 0)
+  const kmPct = plannedKm > 0 ? Math.round((actualKm / plannedKm) * 100) : 0
+
   const gymSessions = workouts.filter((w) => w.type === 'gym' && logs[w.id]?.done).length
-  const runs = workouts.filter((w) => w.type !== 'gym' && w.type !== 'rest' && w.type !== 'travel' && logs[w.id]?.done)
   const qualitySessions = workouts.filter(
     (w) => (w.type === 'tempo' || w.type === 'intervals') && logs[w.id]?.done
   ).length
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateStr()
   const weekEnded = today > week.endDate
 
   return (
@@ -242,15 +272,23 @@ function WeekSummary({ week, logs, workouts }: { week: Week; logs: WorkoutLogs; 
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
         {[
-          { label: 'Planned km', value: `~${plannedKm}km` },
-          { label: 'Gym sessions', value: `${gymSessions}` },
-          { label: 'Quality runs', value: `${qualitySessions}` },
+          {
+            label: 'Running km',
+            value: actualKm > 0
+              ? `${actualKm.toFixed(1)} / ${plannedKm}km`
+              : `~${plannedKm}km`,
+            sub: actualKm > 0 ? `${kmPct}% of plan` : 'planned',
+            color: actualKm > 0 ? (kmPct >= 90 ? '#22c55e' : kmPct >= 70 ? '#f59e0b' : 'var(--orange)') : 'var(--text)',
+          },
+          { label: 'Gym sessions', value: `${gymSessions}`, sub: `of ${workouts.filter(w => w.type === 'gym').length} planned`, color: 'var(--text)' },
+          { label: 'Quality runs', value: `${qualitySessions}`, sub: `tempo/intervals`, color: 'var(--text)' },
         ].map((stat) => (
           <div key={stat.label} style={{
             background: 'var(--surface2)', borderRadius: 8, padding: '8px 10px', textAlign: 'center',
           }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700 }}>{stat.value}</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{stat.label}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: actualKm > 0 && stat.label === 'Running km' ? 14 : 20, fontWeight: 700, color: stat.color }}>{stat.value}</div>
+            <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>{stat.label}</div>
+            {stat.sub && <div style={{ fontSize: 10, color: 'var(--muted)', opacity: 0.7 }}>{stat.sub}</div>}
           </div>
         ))}
       </div>
@@ -395,6 +433,74 @@ export default function WeeklyDashboard({ activities }: { activities: Activity[]
   useEffect(() => {
     fetch('/api/logs').then((r) => r.json()).then((d) => setLogs(d.logs || {}))
   }, [])
+
+  // Auto-match Strava activities to planned workouts
+  useEffect(() => {
+    if (!activities.length) return
+
+    const allWorkouts = PLAN.flatMap((w) => w.workouts)
+    const updates: Array<{ id: string; done: boolean; actualKm: number; stravaActivityId: number; autoMatched: boolean }> = []
+
+    for (const workout of allWorkouts) {
+      if (workout.type === 'rest' || workout.type === 'travel') continue
+
+      const matchingActivities = activities.filter((a) => {
+        const actDate = a.start_date.split('T')[0]
+        if (actDate !== workout.date) return false
+        if (workout.type === 'gym') {
+          // Gym: match any non-run activity, or just mark by date presence
+          return true
+        }
+        // Run workouts: match run activities
+        return a.distance > 500
+      })
+
+      if (matchingActivities.length > 0) {
+        const best = matchingActivities.reduce((a, b) => a.distance > b.distance ? a : b)
+        const actualKm = parseFloat((best.distance / 1000).toFixed(2))
+        updates.push({ id: workout.id, done: true, actualKm, stravaActivityId: best.id, autoMatched: true })
+      }
+    }
+
+    if (updates.length === 0) return
+
+    setLogs((prev) => {
+      const merged = { ...prev }
+      let changed = false
+      for (const u of updates) {
+        // Only auto-apply if not already manually set, or if already auto-matched
+        if (!merged[u.id] || merged[u.id].autoMatched) {
+          merged[u.id] = {
+            done: true,
+            note: merged[u.id]?.note || '',
+            completedAt: merged[u.id]?.completedAt || new Date().toISOString(),
+            actualKm: u.actualKm,
+            stravaActivityId: u.stravaActivityId,
+            autoMatched: true,
+          }
+          changed = true
+        }
+      }
+      if (!changed) return prev
+
+      // Persist to server
+      Promise.all(updates.map((u) =>
+        fetch('/api/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workoutId: u.id,
+            done: true,
+            actualKm: u.actualKm,
+            stravaActivityId: u.stravaActivityId,
+            autoMatched: true,
+          }),
+        })
+      ))
+
+      return merged
+    })
+  }, [activities])
 
   const toggleWorkout = async (id: string, done: boolean) => {
     const updated = { ...logs, [id]: { ...logs[id], done, note: logs[id]?.note || '' } }
