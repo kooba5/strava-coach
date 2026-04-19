@@ -225,6 +225,13 @@ export default function DashboardClient({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // Scroll to bottom immediately after history is restored
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior }), 50)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const sendMessage = async (text?: string) => {
     const content = text || input.trim()
     if (!content || loading) return
