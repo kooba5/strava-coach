@@ -83,3 +83,6 @@ Open [http://localhost:3000](http://localhost:3000)
 - **Strava API v3**
 - **jose** for JWT session cookies
 - No database required
+
+
+# Pozdrawiam :)
