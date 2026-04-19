@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import WeeklyDashboard from './WeeklyDashboard'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -85,6 +86,7 @@ export default function DashboardClient({
   const [activities, setActivities] = useState<Activity[]>([])
   const [dataLoading, setDataLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [activeTab, setActiveTab] = useState<'chat' | 'dashboard'>('dashboard')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -93,7 +95,7 @@ export default function DashboardClient({
       .then((r) => r.json())
       .then((data) => {
         if (data.context) setStravaContext(data.context)
-        if (data.activities) setActivities(data.activities.slice(0, 20))
+        if (data.activities) setActivities(data.activities)
         setDataLoading(false)
       })
       .catch(() => setDataLoading(false))
@@ -389,6 +391,26 @@ export default function DashboardClient({
           }}>
             <span style={{ color: 'var(--orange)' }}>Coach</span> AI
           </div>
+
+          {/* Tab switcher */}
+          <div style={{ display: 'flex', gap: 4, background: 'var(--surface)', border: '0.5px solid var(--border)', borderRadius: 8, padding: 3 }}>
+            {(['dashboard', 'chat'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                  background: activeTab === tab ? 'var(--orange)' : 'transparent',
+                  color: activeTab === tab ? '#fff' : 'var(--muted)',
+                  fontSize: 13, fontFamily: 'var(--font-body)', fontWeight: activeTab === tab ? 500 : 400,
+                  transition: 'all 0.15s', textTransform: 'capitalize',
+                }}
+              >
+                {tab === 'dashboard' ? '📋 Plan' : '💬 Coach'}
+              </button>
+            ))}
+          </div>
+
           {!dataLoading && (
             <div style={{
               marginLeft: 'auto',
@@ -399,12 +421,20 @@ export default function DashboardClient({
               gap: 6,
             }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
-              Strava data loaded
+              Strava synced
             </div>
           )}
         </header>
 
-        {/* Messages */}
+        {/* Dashboard tab */}
+        {activeTab === 'dashboard' && (
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <WeeklyDashboard activities={activities} />
+          </div>
+        )}
+
+        {/* Chat tab */}
+        {activeTab === 'chat' && (<>
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 20px' }}>
           {messages.length === 0 ? (
             <div style={{ maxWidth: 600, margin: '40px auto 0', textAlign: 'center' }}>
@@ -547,6 +577,8 @@ export default function DashboardClient({
             Press Enter to send · Shift+Enter for new line
           </div>
         </div>
+        </>)}
+
       </div>
 
       <style>{`
