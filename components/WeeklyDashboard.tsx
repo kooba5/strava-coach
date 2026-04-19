@@ -31,6 +31,7 @@ interface RunAnalysis {
   paceAnalysis: string
   hrAnalysis: string
   cadenceAnalysis: string
+  splitsInsight: string
   wins: string[]
   improvements: string[]
   nextSessionTip: string
@@ -296,9 +297,10 @@ function WeekSummary({ week, logs, workouts }: { week: Week; logs: WorkoutLogs; 
   )
 }
 
-function RunAnalysisPanel({ analysis, activity, onClose }: {
+function RunAnalysisPanel({ analysis, activity, hasSplits, onClose }: {
   analysis: RunAnalysis
   activity: Activity
+  hasSplits: boolean
   onClose: () => void
 }) {
   const paceStr = (() => {
@@ -322,8 +324,15 @@ function RunAnalysisPanel({ analysis, activity, onClose }: {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, textTransform: 'uppercase' }}>
-              Run Analysis
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, textTransform: 'uppercase' }}>
+                Run Analysis
+              </div>
+              {hasSplits && (
+                <span style={{ fontSize: 10, background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '0.5px solid rgba(34,197,94,0.3)', borderRadius: 4, padding: '2px 6px', fontWeight: 500 }}>
+                  📡 GPS streams
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>{activity.name}</div>
           </div>
@@ -371,6 +380,7 @@ function RunAnalysisPanel({ analysis, activity, onClose }: {
             { label: 'Pace', text: analysis.paceAnalysis },
             { label: 'Heart rate', text: analysis.hrAnalysis },
             { label: 'Cadence', text: analysis.cadenceAnalysis },
+            ...(analysis.splitsInsight ? [{ label: '📊 Split pattern', text: analysis.splitsInsight }] : []),
           ].map((s) => (
             <div key={s.label} style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 5 }}>
@@ -428,6 +438,7 @@ export default function WeeklyDashboard({ activities }: { activities: Activity[]
   const [analysisActivity, setAnalysisActivity] = useState<Activity | null>(null)
   const [analysis, setAnalysis] = useState<RunAnalysis | null>(null)
   const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [hasSplits, setHasSplits] = useState(false)
   const [userNote, setUserNote] = useState('')
 
   useEffect(() => {
@@ -526,6 +537,7 @@ export default function WeeklyDashboard({ activities }: { activities: Activity[]
     setAnalysisActivity(activity)
     setAnalysisLoading(true)
     setAnalysis(null)
+    setHasSplits(false)
     const res = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -533,6 +545,7 @@ export default function WeeklyDashboard({ activities }: { activities: Activity[]
     })
     const data = await res.json()
     setAnalysis(data.analysis)
+    setHasSplits(data.hasSplits || false)
     setAnalysisLoading(false)
   }
 
@@ -674,11 +687,13 @@ export default function WeeklyDashboard({ activities }: { activities: Activity[]
             paceAnalysis: '...',
             hrAnalysis: '...',
             cadenceAnalysis: '...',
+            splitsInsight: '',
             wins: [],
             improvements: [],
             nextSessionTip: '...',
           }}
           activity={analysisActivity}
+          hasSplits={hasSplits}
           onClose={() => { setAnalysis(null); setAnalysisActivity(null) }}
         />
       )}
