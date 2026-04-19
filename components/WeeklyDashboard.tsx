@@ -35,17 +35,22 @@ interface RunAnalysis {
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+function getLocalDateStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function getDayOfWeek(dateStr: string): number {
   const d = new Date(dateStr)
   return (d.getDay() + 6) % 7 // 0=Mon
 }
 
 function isToday(dateStr: string): boolean {
-  return dateStr === new Date().toISOString().split('T')[0]
+  return dateStr === getLocalDateStr()
 }
 
 function isPast(dateStr: string): boolean {
-  return dateStr < new Date().toISOString().split('T')[0]
+  return dateStr < getLocalDateStr()
 }
 
 function CircleProgress({ pct, size = 64, stroke = 5 }: { pct: number; size?: number; stroke?: number }) {

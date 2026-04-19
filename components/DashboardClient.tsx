@@ -3,6 +3,12 @@
 import { useState, useEffect, useRef } from 'react'
 import WeeklyDashboard from './WeeklyDashboard'
 
+// Use local date (not UTC) to avoid timezone shift for Polish users (UTC+2)
+function getLocalDateStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 interface Message {
   role: 'user' | 'assistant'
   content: string
@@ -109,6 +115,7 @@ export default function DashboardClient({
     const content = text || input.trim()
     if (!content || loading) return
     setInput('')
+    setActiveTab('chat') // always switch to chat when sending
 
     const newMessages: Message[] = [...messages, { role: 'user', content }]
     setMessages(newMessages)
@@ -213,7 +220,7 @@ export default function DashboardClient({
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700 }}>
-                {Math.ceil((new Date('2026-05-23').getTime() - Date.now()) / 86400000)} days
+                {Math.ceil((new Date('2026-05-23').getTime() - new Date(getLocalDateStr()).getTime()) / 86400000)} days
               </div>
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>23 May · Sub-1:35</div>
             </div>
@@ -222,7 +229,7 @@ export default function DashboardClient({
                 height: '100%',
                 borderRadius: 2,
                 background: 'var(--orange)',
-                width: `${Math.min(100, Math.round((1 - (new Date('2026-05-23').getTime() - Date.now()) / (34 * 86400000)) * 100))}%`,
+                width: `${Math.min(100, Math.round((1 - (new Date('2026-05-23').getTime() - new Date(getLocalDateStr()).getTime()) / (34 * 86400000)) * 100))}%`,
               }} />
             </div>
           </div>
@@ -451,7 +458,7 @@ export default function DashboardClient({
                 Your plan is loaded. 23 May is coming fast.
               </p>
               <p style={{ color: 'var(--orange)', fontSize: 14, fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 32 }}>
-                Sub-1:35 · {Math.ceil((new Date('2026-05-23').getTime() - Date.now()) / 86400000)} days to go
+                Sub-1:35 · {Math.ceil((new Date('2026-05-23').getTime() - new Date(getLocalDateStr()).getTime()) / 86400000)} days to go
               </p>
               <div style={{
                 display: 'grid',
