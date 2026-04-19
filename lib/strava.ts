@@ -44,9 +44,9 @@ export async function refreshStravaToken(refreshToken: string) {
 
 export async function fetchActivities(
   accessToken: string,
-  months = 4
+  months = 6
 ): Promise<StravaActivity[]> {
-  const after = Math.floor(Date.now() / 1000) - months * 30 * 24 * 3600
+  const after = Math.floor(Date.now() / 1000) - months * 30.44 * 24 * 3600
   const allActivities: StravaActivity[] = []
   let page = 1
 
@@ -62,9 +62,9 @@ export async function fetchActivities(
     page++
   }
 
-  return allActivities.filter(
-    (a) => a.type === 'Run' || a.sport_type === 'Run'
-  )
+  return allActivities
+    .filter((a) => a.type === 'Run' || a.sport_type === 'Run')
+    .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())
 }
 
 export function metersToKm(m: number) {
