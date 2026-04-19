@@ -33,7 +33,7 @@ export const PLAN: Week[] = [
     workouts: [
       {
         id: 'w1-mon',
-        date: '2026-04-21',
+        date: '2026-04-20',
         type: 'gym',
         title: 'Gym (light)',
         description: 'Single-leg RDL, Bulgarian split squats, hip thrusts, calf raises, dead bugs. Keep it light — legs still cooked from the race.',
@@ -73,6 +73,16 @@ export const PLAN: Week[] = [
         description: '6km easy then 4×100m strides at 4:00–4:15/km pace. Walk back to recover fully between each. These train fast-twitch without fatigue.',
         targetKm: 6,
         targetPace: '5:40–6:00/km easy',
+        targetHR: '140–150bpm',
+      },
+      {
+        id: 'w1-sat',
+        date: '2026-04-25',
+        type: 'easy',
+        title: '6km easy (evening)',
+        description: 'Saturday evening easy run. Keep it genuinely easy — tomorrow is the long run. 5:45–6:00/km, HR under 150.',
+        targetKm: 6,
+        targetPace: '5:45–6:00/km',
         targetHR: '140–150bpm',
       },
       {
@@ -359,7 +369,7 @@ export const PLAN: Week[] = [
 export function getCurrentWeek(): Week {
   const today = new Date().toISOString().split('T')[0]
   return (
-    PLAN.find((w) => today >= w.startDate && today <= w.endDate) || PLAN[PLAN.length - 1]
+    PLAN.find((w) => today >= w.startDate && today <= w.endDate) || PLAN[0]
   )
 }
 
