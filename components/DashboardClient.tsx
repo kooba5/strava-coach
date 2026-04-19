@@ -19,12 +19,20 @@ interface Activity {
 }
 
 const SUGGESTIONS = [
-  'Analyze my training and tell me my current fitness level',
-  'Build me a 10K training plan for the next 8 weeks',
-  'What are my weaknesses based on recent runs?',
-  'How should I improve my pace?',
-  'Am I overtraining or undertraining?',
-  'Create a marathon prep plan',
+  "What's my session for tomorrow? I'm free after 4pm",
+  'How did my last run compare to the plan?',
+  'Check my cadence trend — am I improving?',
+  'I just finished a run, give me feedback',
+  'How is my sub-1:35 goal looking right now?',
+  'What should I focus on technically this week?',
+]
+
+const PLAN_WEEKS = [
+  { week: 'Week 1', dates: '20–27 Apr', label: 'Recovery', current: true },
+  { week: 'Week 2', dates: '28 Apr–4 May', label: 'Mountain trip 🏔️', current: false },
+  { week: 'Week 3', dates: '5–11 May', label: 'Key quality + Edinburgh ✈️', current: false },
+  { week: 'Week 4', dates: '12–18 May', label: 'Peak week', current: false },
+  { week: 'Week 5', dates: '19–23 May', label: 'Taper 🏁', current: false },
 ]
 
 function formatKm(m: number) {
@@ -193,36 +201,141 @@ export default function DashboardClient({
           </div>
         </div>
 
-        {/* Recent runs */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 0' }}>
-          <div style={{ padding: '0 16px 10px', fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)' }}>
-            Recent Runs
-          </div>
-          {dataLoading ? (
-            <div style={{ padding: '0 16px', color: 'var(--muted)', fontSize: 13 }}>Loading...</div>
-          ) : activities.length === 0 ? (
-            <div style={{ padding: '0 16px', color: 'var(--muted)', fontSize: 13 }}>No runs found</div>
-          ) : (
-            activities.map((a) => (
-              <div key={a.id} style={{
-                padding: '8px 16px',
-                borderBottom: '0.5px solid var(--border)',
-                cursor: 'default',
-              }}>
-                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {a.name}
-                </div>
-                <div style={{ display: 'flex', gap: 10, fontSize: 12, color: 'var(--muted)' }}>
-                  <span>{formatKm(a.distance)}</span>
-                  <span>{formatPace(a.moving_time, a.distance)} /km</span>
-                  {a.average_heartrate && <span>{Math.round(a.average_heartrate)}bpm</span>}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                  {new Date(a.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                </div>
+        {/* Scrollable sidebar content */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+
+          {/* Race countdown */}
+          <div style={{ padding: '14px 16px', borderBottom: '0.5px solid var(--border)', background: 'rgba(252,76,2,0.07)' }}>
+            <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--orange)', marginBottom: 6 }}>
+              Race Day
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700 }}>
+                {Math.ceil((new Date('2026-05-23').getTime() - Date.now()) / 86400000)} days
               </div>
-            ))
-          )}
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>23 May · Sub-1:35</div>
+            </div>
+            <div style={{ marginTop: 8, height: 3, background: 'var(--border)', borderRadius: 2 }}>
+              <div style={{
+                height: '100%',
+                borderRadius: 2,
+                background: 'var(--orange)',
+                width: `${Math.min(100, Math.round((1 - (new Date('2026-05-23').getTime() - Date.now()) / (34 * 86400000)) * 100))}%`,
+              }} />
+            </div>
+          </div>
+
+          {/* Plan weeks */}
+          <div style={{ padding: '14px 0', borderBottom: '0.5px solid var(--border)' }}>
+            <div style={{ padding: '0 16px 8px', fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+              Training Plan
+            </div>
+            {PLAN_WEEKS.map((w) => (
+              <div key={w.week} style={{
+                padding: '7px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                background: w.current ? 'rgba(252,76,2,0.08)' : 'transparent',
+                borderLeft: w.current ? '2px solid var(--orange)' : '2px solid transparent',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: w.current ? 500 : 400, color: w.current ? 'var(--text)' : 'var(--muted)', marginBottom: 1 }}>
+                    {w.label}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{w.dates}</div>
+                </div>
+                {w.current && (
+                  <div style={{ fontSize: 10, background: 'var(--orange)', color: '#fff', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>
+                    NOW
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Daily check-in */}
+          <div style={{ padding: '14px 16px', borderBottom: '0.5px solid var(--border)' }}>
+            <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10 }}>
+              Daily Check-in
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8, lineHeight: 1.5 }}>
+              Tell the coach your schedule for tomorrow to get a session proposal.
+            </div>
+            <button
+              onClick={() => sendMessage("Daily check-in: what's my session for tomorrow? My schedule is: work 7–3, free after 3pm.")}
+              style={{
+                width: '100%',
+                padding: '9px 12px',
+                background: 'var(--surface2)',
+                border: '0.5px solid var(--border2)',
+                borderRadius: 8,
+                color: 'var(--text)',
+                fontSize: 13,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                textAlign: 'left',
+                transition: 'border-color 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--orange)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border2)')}
+            >
+              🗓️ Check tomorrow's session →
+            </button>
+            <button
+              onClick={() => sendMessage("I just completed a run. Based on my latest Strava activity, how did I do vs the plan? Any adjustments needed?")}
+              style={{
+                width: '100%',
+                marginTop: 6,
+                padding: '9px 12px',
+                background: 'var(--surface2)',
+                border: '0.5px solid var(--border2)',
+                borderRadius: 8,
+                color: 'var(--text)',
+                fontSize: 13,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                textAlign: 'left',
+                transition: 'border-color 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--orange)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border2)')}
+            >
+              ✅ Post-run feedback →
+            </button>
+          </div>
+
+          {/* Recent runs */}
+          <div style={{ padding: '14px 0' }}>
+            <div style={{ padding: '0 16px 8px', fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+              Recent Runs
+            </div>
+            {dataLoading ? (
+              <div style={{ padding: '0 16px', color: 'var(--muted)', fontSize: 13 }}>Loading...</div>
+            ) : activities.length === 0 ? (
+              <div style={{ padding: '0 16px', color: 'var(--muted)', fontSize: 13 }}>No runs found</div>
+            ) : (
+              activities.map((a) => (
+                <div key={a.id} style={{
+                  padding: '8px 16px',
+                  borderBottom: '0.5px solid var(--border)',
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {a.name}
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, fontSize: 12, color: 'var(--muted)' }}>
+                    <span>{formatKm(a.distance)}</span>
+                    <span>{formatPace(a.moving_time, a.distance)} /km</span>
+                    {a.average_heartrate && <span>{Math.round(a.average_heartrate)}bpm</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                    {new Date(a.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
         </div>
 
         <div style={{ padding: 16, borderTop: '0.5px solid var(--border)' }}>
@@ -304,8 +417,11 @@ export default function DashboardClient({
               }}>
                 Hey {firstName} 👋
               </div>
-              <p style={{ color: 'var(--muted)', fontSize: 15, lineHeight: 1.6, marginBottom: 36 }}>
-                I've loaded your Strava data. Ask me anything about your training, or pick a suggestion below.
+              <p style={{ color: 'var(--muted)', fontSize: 15, lineHeight: 1.6, marginBottom: 8 }}>
+                Your plan is loaded. 23 May is coming fast.
+              </p>
+              <p style={{ color: 'var(--orange)', fontSize: 14, fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 32 }}>
+                Sub-1:35 · {Math.ceil((new Date('2026-05-23').getTime() - Date.now()) / 86400000)} days to go
               </p>
               <div style={{
                 display: 'grid',
