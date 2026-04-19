@@ -184,6 +184,32 @@ export default function DashboardClient({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // Load chat history from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('coach_chat_history')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) setMessages(parsed)
+      }
+    } catch {}
+  }, [])
+
+  // Save chat history to localStorage on every change
+  useEffect(() => {
+    if (messages.length === 0) return
+    try {
+      // Keep last 100 messages to avoid storage limits
+      const toSave = messages.slice(-100)
+      localStorage.setItem('coach_chat_history', JSON.stringify(toSave))
+    } catch {}
+  }, [messages])
+
+  const clearHistory = () => {
+    setMessages([])
+    try { localStorage.removeItem('coach_chat_history') } catch {}
+  }
+
   useEffect(() => {
     fetch('/api/strava')
       .then((r) => r.json())
@@ -501,10 +527,29 @@ export default function DashboardClient({
                   transition: 'all 0.15s', textTransform: 'capitalize',
                 }}
               >
-                {tab === 'dashboard' ? '📋 Plan' : '💬 Coach'}
+                {tab === 'dashboard' ? '📋 Plan' : `💬 Coach${messages.length > 0 ? ` (${messages.length})` : ''}`}
               </button>
             ))}
           </div>
+
+          {/* New chat button — only show when there's history */}
+          {messages.length > 0 && (
+            <button
+              onClick={clearHistory}
+              title="Start a new conversation"
+              style={{
+                padding: '5px 12px', borderRadius: 6,
+                border: '0.5px solid var(--border)', background: 'transparent',
+                color: 'var(--muted)', fontSize: 12, cursor: 'pointer',
+                fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+            >
+              + New chat
+            </button>
+          )}
 
           {!dataLoading && (
             <div style={{
