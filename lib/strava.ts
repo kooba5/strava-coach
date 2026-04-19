@@ -92,8 +92,8 @@ export function buildStravaContext(activities: StravaActivity[]): string {
 
   const totalRuns = activities.length
   const totalKm = activities.reduce((s, a) => s + a.distance, 0) / 1000
-  const totalTime = activities.reduce((s, a) => s + a.moving_time, 0)
-  const avgKmPerWeek = totalKm / 16 // ~4 months
+  const weeksSpanned = Math.max(1, Math.round((new Date(activities[0].start_date).getTime() - new Date(activities[activities.length - 1].start_date).getTime()) / (7 * 24 * 3600 * 1000)))
+  const avgKmPerWeek = totalKm / weeksSpanned
 
   const paces = activities
     .filter((a) => a.distance > 1000)
@@ -105,29 +105,28 @@ export function buildStravaContext(activities: StravaActivity[]): string {
   const longestRun = Math.max(...activities.map((a) => a.distance)) / 1000
   const hrActivities = activities.filter((a) => a.average_heartrate)
   const avgHR = hrActivities.length
-    ? hrActivities.reduce((s, a) => s + (a.average_heartrate || 0), 0) /
-      hrActivities.length
+    ? hrActivities.reduce((s, a) => s + (a.average_heartrate || 0), 0) / hrActivities.length
     : null
 
-  const recentRuns = activities.slice(0, 10).map((a) => ({
+  const allRuns = activities.map((a) => ({
     date: a.start_date.split('T')[0],
     km: (a.distance / 1000).toFixed(1),
     pace: secondsToPace(a.moving_time, a.distance),
     hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
+    cadence: a.average_cadence ? Math.round(a.average_cadence * 2) : null,
     elevation: Math.round(a.total_elevation_gain),
     name: a.name,
   }))
 
   return `
-ATHLETE STRAVA DATA (last ~4 months):
-- Total runs: ${totalRuns}
-- Total distance: ${totalKm.toFixed(1)} km
+ATHLETE STRAVA DATA (last ~6 months, ${totalRuns} runs):
+- Total distance: ${totalKm.toFixed(1)} km over ~${weeksSpanned} weeks
 - Average weekly volume: ${avgKmPerWeek.toFixed(1)} km/week
 - Average pace: ${Math.floor(avgPaceMin)}:${Math.round((avgPaceMin % 1) * 60).toString().padStart(2, '0')} /km
 - Longest run: ${longestRun.toFixed(1)} km
 ${avgHR ? `- Average heart rate: ${Math.round(avgHR)} bpm` : ''}
 
-RECENT 10 RUNS:
-${recentRuns.map((r) => `  ${r.date} | ${r.km}km | ${r.pace}${r.hr ? ` | ${r.hr}bpm` : ''} | +${r.elevation}m | "${r.name}"`).join('\n')}
+ALL RUNS (newest first):
+${allRuns.map((r) => `  ${r.date} | ${r.km}km | ${r.pace}${r.hr ? ` | ${r.hr}bpm` : ''}${r.cadence ? ` | ${r.cadence}spm` : ''} | +${r.elevation}m | "${r.name}"`).join('\n')}
 `
 }
