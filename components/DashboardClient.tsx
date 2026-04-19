@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import WeeklyDashboard from './WeeklyDashboard'
 
 // Use local date (not UTC) to avoid timezone shift for Polish users (UTC+2)
@@ -52,6 +52,95 @@ function formatPace(seconds: number, distanceM: number) {
   return `${Math.floor(s / 60)}:${Math.round(s % 60).toString().padStart(2, '0')}`
 }
 
+function renderMarkdown(text: string): React.ReactNode[] {
+  const lines = text.split('\n')
+  const nodes: React.ReactNode[] = []
+  let key = 0
+
+  const inlineFormat = (line: string): React.ReactNode => {
+    // Bold: **text**
+    const parts = line.split(/(\*\*[^*]+\*\*)/)
+    if (parts.length === 1) return line
+    return parts.map((p, i) => {
+      if (p.startsWith('**') && p.endsWith('**')) {
+        return <strong key={i} style={{ fontWeight: 600, color: 'var(--text)' }}>{p.slice(2, -2)}</strong>
+      }
+      return p
+    })
+  }
+
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // H3
+    if (line.startsWith('### ')) {
+      nodes.push(
+        <div key={key++} style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--orange)', marginTop: 14, marginBottom: 4 }}>
+          {line.slice(4)}
+        </div>
+      )
+    }
+    // H2
+    else if (line.startsWith('## ')) {
+      nodes.push(
+        <div key={key++} style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginTop: 16, marginBottom: 6, borderBottom: '0.5px solid var(--border)', paddingBottom: 4 }}>
+          {line.slice(3)}
+        </div>
+      )
+    }
+    // H1
+    else if (line.startsWith('# ')) {
+      nodes.push(
+        <div key={key++} style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text)', marginTop: 16, marginBottom: 8 }}>
+          {line.slice(2)}
+        </div>
+      )
+    }
+    // Bullet point
+    else if (line.match(/^[-*] /)) {
+      nodes.push(
+        <div key={key++} style={{ display: 'flex', gap: 8, marginBottom: 3 }}>
+          <span style={{ color: 'var(--orange)', flexShrink: 0, marginTop: 1 }}>•</span>
+          <span>{inlineFormat(line.slice(2))}</span>
+        </div>
+      )
+    }
+    // Numbered list
+    else if (line.match(/^\d+\. /)) {
+      const match = line.match(/^(\d+)\. (.*)/)
+      if (match) {
+        nodes.push(
+          <div key={key++} style={{ display: 'flex', gap: 8, marginBottom: 3 }}>
+            <span style={{ color: 'var(--orange)', flexShrink: 0, minWidth: 16, fontWeight: 500 }}>{match[1]}.</span>
+            <span>{inlineFormat(match[2])}</span>
+          </div>
+        )
+      }
+    }
+    // Horizontal rule
+    else if (line.match(/^---+$/)) {
+      nodes.push(<hr key={key++} style={{ border: 'none', borderTop: '0.5px solid var(--border)', margin: '10px 0' }} />)
+    }
+    // Empty line → spacing
+    else if (line.trim() === '') {
+      nodes.push(<div key={key++} style={{ height: 6 }} />)
+    }
+    // Regular paragraph
+    else {
+      nodes.push(
+        <div key={key++} style={{ marginBottom: 2, lineHeight: 1.65 }}>
+          {inlineFormat(line)}
+        </div>
+      )
+    }
+
+    i++
+  }
+
+  return nodes
+}
+
 function MessageBubble({ msg }: { msg: Message }) {
   const isUser = msg.role === 'user'
   return (
@@ -69,10 +158,9 @@ function MessageBubble({ msg }: { msg: Message }) {
         lineHeight: 1.65,
         color: isUser ? '#fff' : 'var(--text)',
         border: isUser ? 'none' : '0.5px solid var(--border)',
-        whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
       }}>
-        {msg.content}
+        {isUser ? msg.content : renderMarkdown(msg.content)}
       </div>
     </div>
   )
