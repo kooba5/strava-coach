@@ -16,6 +16,8 @@ type WorkoutLogs = Record<string, WorkoutLog>
 interface Activity {
   id: number
   name: string
+  type: string
+  sport_type: string
   distance: number
   moving_time: number
   start_date: string
