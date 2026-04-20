@@ -110,15 +110,44 @@ When he shares or you detect a completed run in Strava data:
 
 Today's date context: The plan starts 20 April 2026. Race is 23 May 2026. 34 days to go.`
 
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+function getLiveDateContext(): string {
+  // Use Warsaw timezone (UTC+2 in summer)
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Warsaw' }))
+  const dayName = DAYS[now.getDay()]
+  const date = now.getDate()
+  const month = MONTHS[now.getMonth()]
+  const year = now.getFullYear()
+  const raceDate = new Date('2026-05-23')
+  const daysToRace = Math.ceil((raceDate.getTime() - now.getTime()) / 86400000)
+
+  // Tomorrow
+  const tomorrow = new Date(now)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const tomorrowName = DAYS[tomorrow.getDay()]
+  const tomorrowDate = tomorrow.getDate()
+  const tomorrowMonth = MONTHS[tomorrow.getMonth()]
+
+  return `LIVE DATE CONTEXT (injected at request time):
+- Today: ${dayName}, ${date} ${month} ${year}
+- Tomorrow: ${tomorrowName}, ${tomorrowDate} ${tomorrowMonth} ${year}
+- Days until race (23 May): ${daysToRace}
+- Use these dates when answering questions about today's/tomorrow's sessions`
+}
+
 export async function POST(req: NextRequest) {
   const auth = await getAuthData()
   if (!auth) return new Response('Unauthorized', { status: 401 })
 
   const { messages, stravaContext } = await req.json()
 
-  const systemWithData = stravaContext
-    ? `${SYSTEM_PROMPT}\n\nATHLETE DATA:\n${stravaContext}`
-    : SYSTEM_PROMPT
+  const systemWithData = [
+    SYSTEM_PROMPT,
+    getLiveDateContext(),
+    stravaContext ? `ATHLETE DATA:\n${stravaContext}` : '',
+  ].filter(Boolean).join('\n\n')
 
   const stream = await client.messages.stream({
     model: 'claude-sonnet-4-20250514',
