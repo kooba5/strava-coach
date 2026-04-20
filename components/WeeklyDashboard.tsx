@@ -458,12 +458,11 @@ export default function WeeklyDashboard({ activities }: { activities: Activity[]
       const matchingActivities = activities.filter((a) => {
         const actDate = a.start_date.split('T')[0]
         if (actDate !== workout.date) return false
-        if (workout.type === 'gym') {
-          // Gym: match any non-run activity, or just mark by date presence
-          return true
-        }
-        // Run workouts: match run activities
-        return a.distance > 500
+        const gymTypes = ['WeightTraining', 'Workout', 'Crossfit', 'RockClimbing', 'Yoga', 'Pilates']
+        const actIsGym = gymTypes.includes(a.type) || gymTypes.includes(a.sport_type || '')
+        const actIsRun = a.type === 'Run' || a.sport_type === 'Run'
+        if (workout.type === 'gym') return actIsGym
+        return actIsRun && a.distance > 500
       })
 
       if (matchingActivities.length > 0) {

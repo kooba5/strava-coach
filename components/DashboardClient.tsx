@@ -435,34 +435,45 @@ export default function DashboardClient({
             </button>
           </div>
 
-          {/* Recent runs */}
+          {/* Recent activities */}
           <div style={{ padding: '14px 0' }}>
             <div style={{ padding: '0 16px 8px', fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)' }}>
-              Recent Runs
+              Recent Activities
             </div>
             {dataLoading ? (
               <div style={{ padding: '0 16px', color: 'var(--muted)', fontSize: 13 }}>Loading...</div>
             ) : activities.length === 0 ? (
-              <div style={{ padding: '0 16px', color: 'var(--muted)', fontSize: 13 }}>No runs found</div>
+              <div style={{ padding: '0 16px', color: 'var(--muted)', fontSize: 13 }}>No activities found</div>
             ) : (
-              activities.map((a) => (
-                <div key={a.id} style={{
-                  padding: '8px 16px',
-                  borderBottom: '0.5px solid var(--border)',
-                }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {a.name}
+              activities.slice(0, 20).map((a) => {
+                const isRun = a.type === 'Run' || a.sport_type === 'Run'
+                const gymTypes = ['WeightTraining', 'Workout', 'Crossfit']
+                const isGym = gymTypes.includes(a.type) || gymTypes.includes(a.sport_type || '')
+                return (
+                  <div key={a.id} style={{ padding: '8px 16px', borderBottom: '0.5px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <span style={{ fontSize: 11 }}>{isRun ? '🏃' : isGym ? '💪' : '⚡'}</span>
+                      <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {a.name}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, fontSize: 12, color: 'var(--muted)' }}>
+                      {isRun ? (
+                        <>
+                          <span>{formatKm(a.distance)}</span>
+                          <span>{formatPace(a.moving_time, a.distance)} /km</span>
+                          {a.average_heartrate && <span>{Math.round(a.average_heartrate)}bpm</span>}
+                        </>
+                      ) : (
+                        <span>{a.sport_type || a.type}</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      {new Date(a.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 10, fontSize: 12, color: 'var(--muted)' }}>
-                    <span>{formatKm(a.distance)}</span>
-                    <span>{formatPace(a.moving_time, a.distance)} /km</span>
-                    {a.average_heartrate && <span>{Math.round(a.average_heartrate)}bpm</span>}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                    {new Date(a.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                  </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
 

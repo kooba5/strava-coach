@@ -63,8 +63,16 @@ export async function fetchActivities(
   }
 
   return allActivities
-    .filter((a) => a.type === 'Run' || a.sport_type === 'Run')
     .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())
+}
+
+export function isRun(a: StravaActivity): boolean {
+  return a.type === 'Run' || a.sport_type === 'Run'
+}
+
+export function isGym(a: StravaActivity): boolean {
+  const gymTypes = ['WeightTraining', 'Workout', 'Crossfit', 'RockClimbing', 'Yoga', 'Pilates']
+  return gymTypes.includes(a.type) || gymTypes.includes(a.sport_type)
 }
 
 export function metersToKm(m: number) {
@@ -88,27 +96,30 @@ export function formatDuration(seconds: number): string {
 }
 
 export function buildStravaContext(activities: StravaActivity[]): string {
-  if (activities.length === 0) return 'No recent running activities found.'
+  if (activities.length === 0) return 'No recent activities found.'
 
-  const totalRuns = activities.length
-  const totalKm = activities.reduce((s, a) => s + a.distance, 0) / 1000
-  const weeksSpanned = Math.max(1, Math.round((new Date(activities[0].start_date).getTime() - new Date(activities[activities.length - 1].start_date).getTime()) / (7 * 24 * 3600 * 1000)))
+  const runs = activities.filter(isRun)
+  if (runs.length === 0 && activities.length === 0) return 'No recent activities found.'
+
+  const totalRuns = runs.length
+  const totalKm = runs.reduce((s, a) => s + a.distance, 0) / 1000
+  const weeksSpanned = Math.max(1, Math.round((new Date(runs[0]?.start_date || Date.now()).getTime() - new Date(runs[runs.length - 1]?.start_date || Date.now()).getTime()) / (7 * 24 * 3600 * 1000)))
   const avgKmPerWeek = totalKm / weeksSpanned
 
-  const paces = activities
+  const paces = runs
     .filter((a) => a.distance > 1000)
     .map((a) => (a.moving_time / (a.distance / 1000)) / 60)
   const avgPaceMin = paces.length
     ? paces.reduce((a, b) => a + b, 0) / paces.length
     : 0
 
-  const longestRun = Math.max(...activities.map((a) => a.distance)) / 1000
-  const hrActivities = activities.filter((a) => a.average_heartrate)
+  const longestRun = runs.length ? Math.max(...runs.map((a) => a.distance)) / 1000 : 0
+  const hrActivities = runs.filter((a) => a.average_heartrate)
   const avgHR = hrActivities.length
     ? hrActivities.reduce((s, a) => s + (a.average_heartrate || 0), 0) / hrActivities.length
     : null
 
-  const allRuns = activities.map((a) => ({
+  const allRuns = runs.map((a) => ({
     date: a.start_date.split('T')[0],
     km: (a.distance / 1000).toFixed(1),
     pace: secondsToPace(a.moving_time, a.distance),
