@@ -212,16 +212,19 @@ export default function DashboardClient({
     try { localStorage.removeItem('coach_chat_history') } catch {}
   }
 
-  useEffect(() => {
-    fetch('/api/strava')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.context) setStravaContext(data.context)
-        if (data.activities) setActivities(data.activities)
-        setDataLoading(false)
-      })
-      .catch(() => setDataLoading(false))
-  }, [])
+  const stravaLastFetched = useRef<number>(0)
+
+  const fetchStrava = async () => {
+    try {
+      const data = await fetch('/api/strava').then(r => r.json())
+      if (data.context) setStravaContext(data.context)
+      if (data.activities) setActivities(data.activities)
+      stravaLastFetched.current = Date.now()
+      setDataLoading(false)
+    } catch { setDataLoading(false) }
+  }
+
+  useEffect(() => { fetchStrava() }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -238,7 +241,21 @@ export default function DashboardClient({
     const content = text || input.trim()
     if (!content || loading) return
     setInput('')
-    setActiveTab('chat') // always switch to chat when sending
+    setActiveTab('chat')
+
+    // Re-fetch Strava if data is older than 3 minutes
+    let currentContext = stravaContext
+    if (Date.now() - stravaLastFetched.current > 3 * 60 * 1000) {
+      try {
+        const data = await fetch('/api/strava').then(r => r.json())
+        if (data.context) {
+          setStravaContext(data.context)
+          currentContext = data.context
+        }
+        if (data.activities) setActivities(data.activities)
+        stravaLastFetched.current = Date.now()
+      } catch {}
+    }
 
     const newMessages: Message[] = [...messages, { role: 'user', content }]
     setMessages(newMessages)
@@ -250,7 +267,7 @@ export default function DashboardClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: newMessages,
-          stravaContext,
+          stravaContext: currentContext,
         }),
       })
 
@@ -572,14 +589,16 @@ export default function DashboardClient({
           )}
 
           {!dataLoading && (
-            <div style={{
-              marginLeft: 'auto',
-              fontSize: 12,
-              color: 'var(--muted)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}>
+            <div
+              onClick={fetchStrava}
+              title="Click to refresh Strava data"
+              style={{
+                marginLeft: 'auto', fontSize: 12, color: 'var(--muted)',
+                display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
+            >
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
               Strava synced
             </div>
