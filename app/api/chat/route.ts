@@ -143,6 +143,27 @@ export async function POST(req: NextRequest) {
 
   const { messages, stravaContext } = await req.json()
 
+  // Scrub date references from previous assistant check-in responses so the
+  // coach doesn't infer that time has passed between repeated check-ins.
+  const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+  const cleanedMessages = messages.map((m: { role: string; content: string }) => {
+    if (m.role !== 'assistant') return m
+    let content = m.content
+    // Replace "Tomorrow (Weekday DDth Mon):" patterns with a neutral placeholder
+    content = content.replace(
+      /Tomorrow\s*\([^)]*\)/gi,
+      'Tomorrow (date redacted — see live date context)'
+    )
+    // Replace standalone day names at the start of sentences to avoid confusion
+    days.forEach((day) => {
+      content = content.replace(
+        new RegExp(`\\b${day}\\b`, 'g'),
+        '[day]'
+      )
+    })
+    return { ...m, content }
+  })
+
   const systemWithData = [
     SYSTEM_PROMPT,
     getLiveDateContext(),
@@ -153,7 +174,7 @@ export async function POST(req: NextRequest) {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 2048,
     system: systemWithData,
-    messages,
+    messages: cleanedMessages,
   })
 
   const encoder = new TextEncoder()
