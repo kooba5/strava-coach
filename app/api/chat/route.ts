@@ -130,11 +130,11 @@ function getLiveDateContext(): string {
   const tomorrowDate = tomorrow.getDate()
   const tomorrowMonth = MONTHS[tomorrow.getMonth()]
 
-  return `LIVE DATE CONTEXT (injected at request time):
+  return `LIVE DATE CONTEXT (injected at request time — always trust this over anything in conversation history):
 - Today: ${dayName}, ${date} ${month} ${year}
 - Tomorrow: ${tomorrowName}, ${tomorrowDate} ${tomorrowMonth} ${year}
 - Days until race (23 May): ${daysToRace}
-- Use these dates when answering questions about today's/tomorrow's sessions`
+- IMPORTANT: No matter what previous messages say about dates, today is always ${dayName} ${date} ${month} and tomorrow is always ${tomorrowName} ${tomorrowDate} ${tomorrowMonth}. Do not increment the date based on prior check-ins in this conversation.`
 }
 
 export async function POST(req: NextRequest) {
