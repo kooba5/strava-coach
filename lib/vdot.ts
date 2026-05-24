@@ -68,7 +68,7 @@ export function predictTime(distanceMeters: number, vdot: number): number {
 // ----------------------------------------------------------------------------
 // Training paces
 // ----------------------------------------------------------------------------
- 
+
 export interface TrainingPaces {
   /** seconds per km for each zone */
   easyLow: number; // slow end of easy range
@@ -78,7 +78,7 @@ export interface TrainingPaces {
   interval: number;
   repetition: number;
 }
- 
+
 /**
  * Training paces (seconds per km) for a given VDOT.
  *
@@ -103,11 +103,11 @@ export const ANCHORS = {
   interval: 0.9261,
   repetition: 1.0092,
 } as const;
- 
+
 // Easy is a BAND, not a point. Daniels' easy spans ~15-20 s/km. We center on the
 // easy anchor and apply +/- half the band. Faster end never crosses into M pace.
 const EASY_BAND_SEC_PER_KM = 18;
- 
+
 export function trainingPaces(vdot: number): TrainingPaces {
   const secPerKmAtIntensity = (frac: number): number => {
     // velocity (m/min) such that oxygenCost(v) = frac * vdot
@@ -119,9 +119,9 @@ export function trainingPaces(vdot: number): TrainingPaces {
     const metersPerSec = v / 60;
     return Math.round(1000 / metersPerSec); // sec per km
   };
- 
+
   const easyCenter = secPerKmAtIntensity(ANCHORS.easy);
- 
+
   // NOTE on naming: lower intensity => slower pace => LARGER sec/km.
   // easyLow = slow end of the easy band (bigger number),
   // easyHigh = fast end of the easy band (smaller number).
@@ -134,25 +134,24 @@ export function trainingPaces(vdot: number): TrainingPaces {
     repetition: secPerKmAtIntensity(ANCHORS.repetition),
   };
 }
+
 // ----------------------------------------------------------------------------
 // Heat adjustment
 // ----------------------------------------------------------------------------
 
-/** Neutral temperature (°C) below which no heat penalty is applied. Exported
- *  so it can be tuned from the athlete's own hot-vs-cool paired efforts. */
+/** Neutral temperature (C) below which no heat penalty applies. Tunable. */
 export const HEAT_NEUTRAL_C = 15;
-
-/** Fractional pace degradation per 5°C above neutral (e.g. 0.015 = 1.5 %).
- *  Conservative default; calibrate upward if the athlete runs hotter races. */
+/** Fractional pace penalty per 5C above neutral. Tunable from athlete data. */
 export const HEAT_PENALTY_PER_5C = 0.015;
 
 /**
  * Adjust an observed time for heat so it can be fairly compared / fed to VDOT.
  *
- * Heuristic: above HEAT_NEUTRAL_C, endurance pace degrades roughly
- * HEAT_PENALTY_PER_5C per 5C. We REMOVE that penalty to estimate the
- * equivalent fair-weather time, so a hot, slow run isn't misread as a fitness
- * drop.
+ * Heuristic: above a neutral threshold (~15C), endurance pace degrades roughly
+ * 1.5% per 5C. We REMOVE that penalty to estimate the equivalent fair-weather
+ * time, so a hot, slow run isn't misread as a fitness drop.
+ *
+ * This is intentionally conservative; tune with the athlete's own data later.
  *
  * @returns the estimated fair-weather equivalent time in seconds
  */
@@ -170,16 +169,23 @@ export function heatAdjustTime(timeSeconds: number, tempCelsius: number): number
 
 /** Format seconds-per-km as "m:ss". */
 export function fmtPace(secPerKm: number): string {
-  const m = Math.floor(secPerKm / 60);
-  const s = Math.round(secPerKm % 60);
+  let m = Math.floor(secPerKm / 60);
+  let s = Math.round(secPerKm % 60);
+  if (s === 60) {
+    // rounding carry: 4:00/km was rendering as "3:60"
+    m += 1;
+    s = 0;
+  }
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /** Format a duration in seconds as "h:mm:ss" or "mm:ss". */
 export function fmtTime(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = Math.round(totalSeconds % 60);
+  // round first, then decompose, so a value like 3599.7s doesn't yield ":60"
+  const rounded = Math.round(totalSeconds);
+  const h = Math.floor(rounded / 3600);
+  const m = Math.floor((rounded % 3600) / 60);
+  const s = rounded % 60;
   if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
