@@ -4,7 +4,7 @@
 Work top to bottom. Each spec is self-contained. Plan-then-implement per WORKFLOW.md.
 
 ## Up Next
-- [ ] **Spec 04 — Persistence**: DB schema (Turso/Postgres + Drizzle), update README off "no DB"
+- [ ] **Spec 05 — Matcher**: planned-vs-actual reconciliation + pattern detection
 - [ ] **Spec 05 — Matcher**: planned-vs-actual reconciliation + pattern detection
 - [ ] **Spec 06 — Coach prompt**: state-block assembly, harsh-but-fair logic, streaming
 - [ ] **Spec 07 — Garmin recovery**: GarminDB cron off-Vercel -> /api/recovery/ingest -> readiness
@@ -19,6 +19,7 @@ Work top to bottom. Each spec is self-contained. Plan-then-implement per WORKFLO
 - [x] VDOT engine starter + validation (VDOT 45 confirmed from 1:40:04 half)
 - [x] **Spec 01 — VDOT engine**: calibrated pace anchors to Daniels 3rd-ed tables (ANCHORS + EASY_BAND); added `HEAT_NEUTRAL_C` / `HEAT_PENALTY_PER_5C` export constants; 8 guard tests green (`npm test`)
 - [x] **Spec 02 — Goal feasibility**: `lib/goalFeasibility.ts` — dynamic baseRate(vdot), frequency/volume multipliers, gap→verdict bands, `isUnlocked` data-gate (VDOT≥50 + 18km long run), `assessAllGoals`; 11 tests green; build clean
+- [x] **Spec 04 — Persistence**: Turso/libSQL + Drizzle ORM; `lib/schema.ts` (4 tables: athlete, plannedSession, sessionResult, recoveryDay), `lib/db.ts`, `lib/queries.ts` (6 typed helpers), `lib/migrate.ts`, `scripts/seed.ts`; initial migration generated; seed runs clean; README updated; build clean
 - [x] **Spec 03 — Plan generator**: `lib/planGenerator.ts` — volume-driven quality sizing (T floor=20min, I=8%, R=5%), validator trims on absolute ceiling only / ADD_EASY_VOLUME advisory for low volume, Phases I/II goal-agnostic, gym placement rules enforced, `generate4WeekBlock`; 26 tests green (3 required regressions + 23 structural); build clean
 
 ---

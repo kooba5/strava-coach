@@ -40,6 +40,8 @@ git push -u origin main
 | `NEXTAUTH_SECRET` | any random 32-char string (e.g. generate at [generate-secret.vercel.app](https://generate-secret.vercel.app/32)) |
 | `NEXT_PUBLIC_BASE_URL` | `https://your-app-name.vercel.app` |
 | `NEXT_PUBLIC_STRAVA_CLIENT_ID` | same as `STRAVA_CLIENT_ID` |
+| `TURSO_DATABASE_URL` | your Turso DB URL, e.g. `libsql://your-db.turso.io` |
+| `TURSO_AUTH_TOKEN` | Turso auth token (from `turso db tokens create your-db`) |
 
 5. Click **Deploy** — it'll be live in ~1 minute!
 
@@ -64,6 +66,15 @@ ANTHROPIC_API_KEY=your_key
 NEXTAUTH_SECRET=any-random-string
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_STRAVA_CLIENT_ID=your_id
+
+# Database (Turso). Omit TURSO_AUTH_TOKEN for a local SQLite file.
+TURSO_DATABASE_URL=file:local.db
+```
+
+Run the initial migration and seed:
+```bash
+npm run db:migrate   # applies ./drizzle migrations to local.db
+npm run db:seed      # seeds VDOT-45 athlete + goals
 ```
 
 For local dev, set the Strava callback domain to `localhost`.
@@ -82,7 +93,7 @@ Open [http://localhost:3000](http://localhost:3000)
 - **Anthropic Claude** (claude-sonnet-4, streaming)
 - **Strava API v3**
 - **jose** for JWT session cookies
-- No database required
+- **Turso (libSQL / SQLite)** + **Drizzle ORM** for persistence
 
 
 # Pozdrawiam :)

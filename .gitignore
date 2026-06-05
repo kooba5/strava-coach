@@ -3,3 +3,7 @@
 .next/
 node_modules/
 .DS_Store
+# local SQLite dev database
+local.db
+local.db-shm
+local.db-wal
